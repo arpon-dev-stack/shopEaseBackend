@@ -109,4 +109,58 @@ Now generate refresh token with unique id.
 <br> <br> 
 `const uniqueId = crypto.randomBytes(16).toString("hex"); const refreshPayload = {name: user.name, id: uniqueId}; const refreshToken = jwt.sign(refreshPayload, process.env.JWT_REFRESH_SECRET, {expiresIn: REFRESH_EXPIRATION});` 
 <br> <br> 
-**->** Then create a database where only refreshtoken save with 
+**->** 
+Then create a database where only refreshtoken save with unique id, user id, expiration, ip, user agent. 
+<br> <br> 
+`refreshTokenDatabase({user: id, id: unique id, refreshToken, expire date, ip, user agent})` 
+<br> <br> 
+**->** 
+Then response refresh token as cookie.
+<br> <br> 
+`  res.cookie('refresh_token', refreshToken, {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: 'strict',
+    path: '/auth/refresh',
+    maxAge: REFRESH_TTL_SEC * 1000
+  });
+` 
+<br> <br>
+**->** 
+And response accessToken as header. 
+<br> <br> 
++ Post request on route '/logout' 
+<br> <br> 
+**->** take look on reqest cookies. if token exist find that token to database and does not revoked set revoke the logout time. 
+<br> <br> 
+`const token = req.cookies?.refresh_token; 
+if (token) {
+    const tokenHash = hashToken(token); 
+    const doc = await RefreshToken.findOne({tokenHash}); 
+    if (doc && !doc.revokedAt) {
+        doc.revokedAt = new Date(); 
+        await doc.save();
+    }
+} 
+res.clearCookie('refresh_token', {path: '/auth/refresh'}); 
+res.json({message: 'Logged out})` 
+<br> <br> 
++ Post request on route '/refresh'. 
+<br> <br> 
+**->** take look on reqest cookies. if don't have token fail response happen. then it verify with server refresh token then find refreshtoken user with user database then check revoke, refresh and refreshtoken. if all success it set new revoke value, new unique id, replaceby new unique id, and save this new refreshtoken database. and generate new access, refresh and new refreshCookie token 
+<br> <br> 
+`oldDoc.revokedAt = new Date();
+  const newJti = createJti();
+  oldDoc.replacedBy = newJti;
+  await oldDoc.save();
+  const newAccess = signAccessToken(user);
+  const newRefresh = signRefreshToken(user, newJti);
+  await persistRefreshToken({
+    user,
+    refreshToken: newRefresh,
+    jti: newJti,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'] || ''
+  });
+  setRefreshCookie(res, newRefresh);
+  return { accessToken: newAccess };` 
