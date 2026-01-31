@@ -12,6 +12,7 @@ import {
     persistRefreshToken,
     setRefreshCookie 
 } from '../utils/token.js';
+import auth from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -112,5 +113,8 @@ router.post('/logout', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+router.post('/verify', async (req, res) => {
+    
+})
 
 export default router;
