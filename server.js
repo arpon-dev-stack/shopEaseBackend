@@ -25,7 +25,7 @@ app.use(helmet());
 
 
 app.use('/user', authLimiter, authRoutes);
-app.use('/api/profile', profileRoutes);
+app.use('/profile', profileRoutes);
 app.use('/products', product)
 
 // Database Connection
